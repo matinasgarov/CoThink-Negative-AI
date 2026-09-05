@@ -191,6 +191,9 @@ Toxunulmamış test bölməsində nəticə:
 | `threat` | 0.50 | 0.251 | 0.251 | — |
 | **macro F1** | | 0.540 | **0.565** | **+0.024** |
 
+Sonradan təsnifatçının özü də yaxşılaşdırıldı (aşağıya bax) və hədlər yenidən
+seçildi. Hazırkı vəziyyət: **macro F1 0.574**.
+
 Müqayisə üçün: etiket təmizləməsi cəmi +0.0002 macro F1 vermişdi. Deməli
 zəifliyin bir hissəsi həqiqətən **model qərarıdır, data məhdudiyyəti deyil**.
 
@@ -238,8 +241,8 @@ yuxarıda: **çətin kateqoriyalar lüğətə deyil, kompozisiyaya əsaslanır.*
 
 - ~~**Hədləri yenidən tənzimləmək**~~ — **edilib**: macro F1 +0.024
   (`tune_thresholds.py`, nəticələr `thresholds.json`-da).
-- **Nadir etiketlər üçün `class_weight="balanced"`-dan imtina etmək** və bunun
-  əvəzinə həddi açıq şəkildə təyin etmək — hələ sınanmayıb.
+- ~~**`class_weight="balanced"`-dan imtina etmək**~~ — **sınanıb və rədd
+  edilib**: nəticə xeyli pisləşdi (macro F1 0.586 → 0.526). Parametr qalır.
 - **`threat` və `severe_toxicity` üzrə avtomatik bloklamamaq.** 0.141
   dəqiqliklə hər 7 avtomatik blokdan 6-sı səhv olardı. Gate onsuz da bu
   kateqoriyaları yalnız məlumat xarakterli (`advisory`) sayır.
@@ -248,3 +251,63 @@ yuxarıda: **çətin kateqoriyalar lüğətə deyil, kompozisiyaya əsaslanır.*
   recall) ölçülüb — təsirləri cüzidir. XLM-R isə söz sırasını modelləşdirir və
   şərti strukturu təmsil edə bilir. GPU ilə fine-tune məhz burada özünü
   doğruldur.
+
+
+## 4. Model konfiqurasiyası da yoxlanıldı
+
+`experiments.py` altı konfiqurasiyanı təlim → validasiya üzərində müqayisə edir
+(hər biri üçün hədlər ayrıca seçilir ki, müqayisə ədalətli olsun):
+
+| Konfiqurasiya | Validasiya macro F1 |
+|---|---|
+| **char 2-6, 200k xüsusiyyət, C=4** | **0.5941** |
+| char 2-5, C=4 | 0.5905 |
+| char + söz birləşməsi, C=4 | 0.5883 |
+| baza: char 2-5, C=1 | 0.5859 |
+| char + söz, LinearSVC | 0.5828 |
+| char 2-5, C=1, balanslaşdırma yoxdur | 0.5257 |
+
+Qalib konfiqurasiya tətbiq edildi. Ən böyük fayda `severe_toxicity`-də oldu:
+F1 0.310 → **0.378**.
+
+**Vacib yan təsir:** model dəyişdikdə gate-in bloklama həddi öz dəqiqlik
+zəmanətini itirdi — 0.95 həddində dəqiqlik 0.958-dən 0.944-ə düşdü. Ona görə
+hədd 0.97-yə qaldırıldı (dəqiqlik 0.961). **Bloklama həddi sabit deyil,
+zəmanətdir** — hər model dəyişikliyindən sonra yenidən ölçülməlidir.
+
+## 5. Əsl tavan: etiketlərin özü ziddiyyətlidir
+
+Datasetdə **eyni mətn** birdən çox dəfə rast gəlinir (552 qrup). Həmin eyni
+mətnlərə annotatorlar nə qədər eyni etiket verib?
+
+| Etiket | Müsbət olan qrup | Ziddiyyət | Uyğunluq |
+|---|---|---|---|
+| `toxicity` | 169 | 45 | **0.734** |
+| `insult` | 126 | 51 | **0.595** |
+| `obscene` | 58 | 26 | **0.552** |
+
+**Eyni mətnə `insult` etiketi hallarının 40%-ində fərqli verilib.**
+
+Bu, riyazi bir tavandır. Model `insult` üzrə F1 0.717 göstərir — annotatorların
+öz aralarındakı uyğunluq isə ~0.60-dır. Yəni model artıq etiketlərin
+razılaşdığı səviyyədədir. Annotatorların özlərinin iki fərqli qərar verdiyi
+nümunə üçün heç bir model qayda öyrənə bilməz.
+
+*(Qeyd: `identity_attack` üçün cəmi 10, `severe_toxicity` üçün 5 qrup var —
+bu rəqəmlər etibarsızdır. `insult` və `toxicity` isə kifayət qədər böyükdür.)*
+
+## Yekun: bal niyə aşağıdır və nə etmək olar
+
+Ölçülmüş nəticələr:
+
+| Addım | macro F1 | Fərq |
+|---|---|---|
+| Başlanğıc | 0.540 | — |
+| + hədd tənzimləməsi | 0.565 | +0.025 |
+| + daha yaxşı model | **0.574** | +0.009 |
+
+Qalan boşluq **modeldə deyil, etiketlərdədir**. Ən çox fayda verəcək iş kod
+yazmaq yox, **etiketləmə işidir**: `threat` və `severe_toxicity` üçün aydın
+yazılı təlimat hazırlamaq və iki annotatorla yenidən etiketləmək. Transformer
+(XLM-R) kompozisiyalı kateqoriyalarda kömək edər, lakin o da eyni tavanla
+məhdudlaşır.

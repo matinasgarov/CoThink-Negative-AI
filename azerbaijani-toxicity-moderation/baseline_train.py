@@ -30,18 +30,22 @@ def load(path):
 train_texts, train_labels = load("azerbaijani_toxicity_train.csv")
 val_texts, val_labels = load("azerbaijani_toxicity_val.csv")
 
+# Settings chosen by experiments.py, measured on validation: longer n-grams
+# and a wider vocabulary beat the original (2,5)/100k, and lighter
+# regularization (C=4) beat C=1. Dropping class_weight="balanced" was tried
+# and was much worse (macro F1 0.526 vs 0.586), so it stays.
 vectorizer = TfidfVectorizer(
     analyzer="char_wb",  # robust to Azerbaijani morphology + typos/obfuscation
-    ngram_range=(2, 5),
+    ngram_range=(2, 6),
     min_df=2,
-    max_features=100_000,
+    max_features=200_000,
     sublinear_tf=True,
 )
 X_train = vectorizer.fit_transform(train_texts)
 X_val = vectorizer.transform(val_texts)
 
 clf = OneVsRestClassifier(
-    LogisticRegression(max_iter=1000, class_weight="balanced", C=1.0),
+    LogisticRegression(max_iter=1000, class_weight="balanced", C=4.0),
     n_jobs=-1,
 )
 clf.fit(X_train, train_labels)

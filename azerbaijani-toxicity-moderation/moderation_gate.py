@@ -23,10 +23,13 @@ Routing thresholds, measured on the held-out test split, not guessed:
     threshold   precision   recall
       0.50        0.796      0.781   <- too imprecise to block on
       0.80        0.918      0.344
-      0.95        0.958      0.067   <- matches lexicon severity-3 precision
+      0.95        0.944      ....    <- no longer enough after the 2-6/C=4 retrain
+      0.97        0.961      ....    <- current block threshold
     lexicon sev 3 0.957      n/a
 
-Re-measure with evaluate.py and compare_relabel.py after changing the lexicon.
+Re-measure after ANY model or lexicon change: the block threshold is a
+precision guarantee, not a constant. Retraining with wider n-grams moved 0.95
+from 0.958 to 0.944 precision, which is why it is 0.97 now.
 
 Usage:
     gate = ModerationGate.load()
@@ -54,7 +57,7 @@ TOXICITY_IDX = LABEL_COLS.index("toxicity")
 # PRECISION -- only signals measured at ~0.96 may block -- and are deliberately
 # not the F1-optimal values, because the cost of a wrong block is not symmetric
 # with the cost of a miss.
-CLASSIFIER_BLOCK_THRESHOLD = 0.95
+CLASSIFIER_BLOCK_THRESHOLD = 0.97
 CLASSIFIER_REVIEW_THRESHOLD = 0.50
 LEXICON_BLOCK_SEVERITY = 3
 

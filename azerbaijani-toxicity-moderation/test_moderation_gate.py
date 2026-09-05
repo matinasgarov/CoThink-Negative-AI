@@ -91,33 +91,57 @@ class TestCategoryThresholds(unittest.TestCase):
             self.assertGreater(CATEGORY_THRESHOLDS[label], 0.0)
             self.assertLessEqual(CATEGORY_THRESHOLDS[label], 1.0)
 
-    def test_rare_labels_kept_the_default(self):
-        # threat had 61 validation positives and severe_toxicity failed the
-        # generalization check, so both must stay at 0.5 rather than be fitted.
+    def test_threat_keeps_the_default(self):
+        """threat has 61 validation positives, far below the 150 needed.
+
+        Asserted by name because that support figure is a property of the
+        dataset, not of any particular model -- a fitted threat threshold
+        would mean the support gate had been removed or weakened.
+        """
         self.assertEqual(CATEGORY_THRESHOLDS["threat"], 0.5)
-        self.assertEqual(CATEGORY_THRESHOLDS["severe_toxicity"], 0.5)
 
-    def test_score_below_a_raised_threshold_is_not_reported(self):
-        # sexual_explicit sits at 0.71, so 0.60 must no longer flag it -- this
-        # is the over-reporting the retune exists to fix.
-        self.assertGreater(CATEGORY_THRESHOLDS["sexual_explicit"], 0.60)
-        decision = gate_with(0.10, sexual_explicit=0.60).moderate("neytral mətn")
-        self.assertNotIn("sexual_explicit", decision["flagged_categories"])
+    def test_a_raised_threshold_suppresses_scores_below_it(self):
+        # Whichever labels were fitted upward, a score under the cutoff must
+        # not be reported. Found by value rather than by name, since which
+        # labels clear the guards changes when the model is retrained.
+        raised = [l for l, t in CATEGORY_THRESHOLDS.items()
+                  if t > 0.55 and l != "toxicity"]
+        self.assertTrue(raised, "expected at least one upward-fitted label")
+        for label in raised:
+            below = CATEGORY_THRESHOLDS[label] - 0.05
+            decision = gate_with(0.10, **{label: below}).moderate("neytral mətn")
+            self.assertNotIn(label, decision["flagged_categories"], label)
 
-    def test_score_above_a_raised_threshold_is_reported(self):
-        decision = gate_with(0.10, sexual_explicit=0.90).moderate("neytral mətn")
-        self.assertIn("sexual_explicit", decision["flagged_categories"])
+    def test_a_raised_threshold_still_reports_scores_above_it(self):
+        raised = [l for l, t in CATEGORY_THRESHOLDS.items()
+                  if t > 0.55 and l != "toxicity"]
+        for label in raised:
+            above = min(CATEGORY_THRESHOLDS[label] + 0.05, 0.99)
+            decision = gate_with(0.10, **{label: above}).moderate("neytral mətn")
+            self.assertIn(label, decision["flagged_categories"], label)
 
-    def test_score_above_a_lowered_threshold_is_reported(self):
-        # insult was fitted down to 0.44, so 0.46 should now flag.
-        self.assertLess(CATEGORY_THRESHOLDS["insult"], 0.5)
-        decision = gate_with(0.10, insult=0.46).moderate("neytral mətn")
-        self.assertIn("insult", decision["flagged_categories"])
+    def test_a_lowered_threshold_reports_scores_under_one_half(self):
+        lowered = [l for l, t in CATEGORY_THRESHOLDS.items()
+                   if t < 0.5 and l != "toxicity"]
+        self.assertTrue(lowered, "expected at least one downward-fitted label")
+        for label in lowered:
+            between = CATEGORY_THRESHOLDS[label] + 0.01
+            decision = gate_with(0.10, **{label: between}).moderate("neytral mətn")
+            self.assertIn(label, decision["flagged_categories"], label)
 
     def test_thresholds_do_not_change_the_block_decision(self):
         # Routing is precision-driven and must be unaffected by F1 tuning.
+        # 0.99 is above any plausible block threshold, 0.80 below it.
         self.assertEqual(gate_with(0.99).moderate("neytral mətn")["action"], BLOCK)
         self.assertEqual(gate_with(0.80).moderate("neytral mətn")["action"], REVIEW)
+
+    def test_block_threshold_stays_stricter_than_review(self):
+        from moderation_gate import (CLASSIFIER_BLOCK_THRESHOLD,
+                                     CLASSIFIER_REVIEW_THRESHOLD)
+        self.assertGreater(CLASSIFIER_BLOCK_THRESHOLD, CLASSIFIER_REVIEW_THRESHOLD)
+        # The block band is a precision guarantee; it must never drift down to
+        # the F1-optimal value, which is far lower.
+        self.assertGreaterEqual(CLASSIFIER_BLOCK_THRESHOLD, 0.90)
 
 
 class TestLexiconOnlyFallback(unittest.TestCase):
