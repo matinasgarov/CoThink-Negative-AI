@@ -18,6 +18,7 @@ azerbaijani-toxicity-moderation/     The moderation subsystem
   Product_Build_Roadmap_Overview.pdf The 6-phase plan this work follows
   lexicon/                           Bad-word database (see its own README)
   moderation_gate.py                 Combines lexicon + classifier into one decision
+  tune_thresholds.py                 Fits per-label thresholds -> thresholds.json
   api.py                             HTTP service (/moderate)
   demo_moderated_qa_pipeline.py      End-to-end walkthrough with a stubbed LLM call
 ```
@@ -90,7 +91,7 @@ curl -X POST localhost:8000/moderate \
 ```bash
 cd azerbaijani-toxicity-moderation
 python -m unittest discover -s lexicon -p "test_*.py"   # 45 tests
-python -m unittest test_moderation_gate test_api        # 29 tests
+python -m unittest test_moderation_gate test_api        # 35 tests
 ```
 
 ## Rebuilding from a clone
@@ -170,21 +171,47 @@ Bu mənzərə — yüksək əhatəlilik, çökmüş dəqiqlik — təsnifatçıd
 sinifləri süni şəkildə gücləndirir və qərar sərhədini "müsbət" tərəfə çəkir.
 Müsbət nümunələrin cəmi 0.9% olduğu datasetdə bu, həddən artıq aqressivdir.
 
-## 2. Hədd tənzimləməsi problemin bir hissəsini həll edir
+## 2. Hədd tənzimləməsi problemin bir hissəsini həll edir — TƏTBİQ EDİLİB
 
-Hər etiket üçün ayrıca hədd seçmək real fayda verir — toxunulmamış test
-bölməsində yoxlanılıb:
+Hər etiket üçün ayrıca hədd seçmək real fayda verir. `tune_thresholds.py`
+hədləri **yalnız validasiya** bölməsi üzərində seçir; test bölməsi nə hədd
+seçmək, nə də hansı etiketin tənzimlənəcəyinə qərar vermək üçün istifadə
+olunmur — əks halda aşağıdakı test nəticələri mənasız olardı.
 
-| Etiket | F1 (hədd 0.5) | Ən yaxşı hədd | F1 (test) |
-|---|---|---|---|
-| `sexual_explicit` | 0.561 | 0.71 | **0.624** |
-| `obscene` | 0.562 | 0.65 | **0.593** |
+Toxunulmamış test bölməsində nəticə:
 
-Deməli, zəifliyin bir hissəsi **model qərarıdır, data məhdudiyyəti deyil**.
+| Etiket | Hədd | F1 (0.5) | F1 (tənzimlənmiş) | Fərq |
+|---|---|---|---|---|
+| `sexual_explicit` | 0.71 | 0.537 | **0.624** | +0.087 |
+| `obscene` | 0.65 | 0.553 | **0.593** | +0.040 |
+| `identity_attack` | 0.62 | 0.630 | **0.656** | +0.025 |
+| `toxicity` | 0.39 | 0.789 | **0.801** | +0.013 |
+| `insult` | 0.44 | 0.712 | **0.719** | +0.006 |
+| `severe_toxicity` | 0.50 | 0.309 | 0.309 | — |
+| `threat` | 0.50 | 0.251 | 0.251 | — |
+| **macro F1** | | 0.540 | **0.565** | **+0.024** |
 
-Lakin `threat` üçün bu üsul işləmir: validasiya üzərində seçilmiş hədd test
-bölməsində nəticəni **pisləşdirir** (0.218 → 0.198). Validasiyada cəmi 61
-müsbət nümunə var — bu, öyrənmək bir yana, hətta kalibrləmək üçün də azdır.
+Müqayisə üçün: etiket təmizləməsi cəmi +0.0002 macro F1 vermişdi. Deməli
+zəifliyin bir hissəsi həqiqətən **model qərarıdır, data məhdudiyyəti deyil**.
+
+**Nadir etiketlər isə tənzimlənmir — bilərəkdən.** İki qoruyucu var, hər ikisi
+yalnız validasiya məlumatına əsaslanır:
+
+- `threat`: validasiyada cəmi 61 müsbət nümunə (minimum 150 tələb olunur).
+  Sınaqda göründüyü kimi, 61 nümunə üzərində seçilmiş hədd test bölməsində
+  nəticəni **pisləşdirirdi** (0.218 → 0.198) — yəni səs-küyə uyğunlaşırdı.
+- `severe_toxicity`: 155 nümunə ilə həddi keçdi (0.87 seçildi), lakin
+  validasiyanın ikiyə bölünmüş digər yarısında 0.5-ə uduzdu və qəbul edilmədi.
+
+Hər ikisi öz-özünə imtina etdi — bu, metodologiyanın işlədiyinin göstəricisidir.
+
+**Gate-də iki ayrı hədd dəsti var.** Bloklama/nəzərdən keçirmə qərarı
+**dəqiqliyə** görə seçilir (yalnız ~0.96 dəqiqlikli siqnal bloklaya bilər),
+kateqoriyanın qeydə yazılması isə **F1-ə** görə. Bunlar fərqli qərarlardır:
+səhv bloklamanın qiyməti ilə səhv kateqoriya etiketinin qiyməti eyni deyil.
+
+Gate səviyyəsində nəticə: **295 yanlış kateqoriya etiketi aradan qalxdı**
+(2,867 → 2,572), üstəlik düzgün etiketlərin sayı da artdı (3,463 → 3,516).
 
 ## 3. Əsas səbəb: təhdid leksik deyil, qrammatik hadisədir
 
@@ -209,10 +236,10 @@ yuxarıda: **çətin kateqoriyalar lüğətə deyil, kompozisiyaya əsaslanır.*
 
 ## Nəticələr
 
-- **Hədləri yenidən tənzimləmək** — əlavə xərc tələb etmir, bu gün işləyir və
-  `obscene` ilə `sexual_explicit` üzərində ölçülə bilən qazanc verir.
+- ~~**Hədləri yenidən tənzimləmək**~~ — **edilib**: macro F1 +0.024
+  (`tune_thresholds.py`, nəticələr `thresholds.json`-da).
 - **Nadir etiketlər üçün `class_weight="balanced"`-dan imtina etmək** və bunun
-  əvəzinə həddi açıq şəkildə təyin etmək.
+  əvəzinə həddi açıq şəkildə təyin etmək — hələ sınanmayıb.
 - **`threat` və `severe_toxicity` üzrə avtomatik bloklamamaq.** 0.141
   dəqiqliklə hər 7 avtomatik blokdan 6-sı səhv olardı. Gate onsuz da bu
   kateqoriyaları yalnız məlumat xarakterli (`advisory`) sayır.

@@ -1,0 +1,22 @@
+{
+  "_comment": "Per-label thresholds for reporting a category. Fitted on validation only; see tune_thresholds.py. The block/review decision uses moderation_gate.py's own precision-driven thresholds, not these.",
+  "default": 0.5,
+  "thresholds": {
+    "identity_attack": 0.62,
+    "insult": 0.44,
+    "obscene": 0.65,
+    "severe_toxicity": 0.5,
+    "sexual_explicit": 0.71,
+    "threat": 0.5,
+    "toxicity": 0.39
+  },
+  "reasons": {
+    "identity_attack": "fitted on validation",
+    "insult": "fitted on validation",
+    "obscene": "fitted on validation",
+    "severe_toxicity": "did not generalize within validation",
+    "sexual_explicit": "fitted on validation",
+    "threat": "only 61 validation positives",
+    "toxicity": "fitted on validation"
+  }
+}

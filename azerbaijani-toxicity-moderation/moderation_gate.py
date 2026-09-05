@@ -13,7 +13,12 @@ Auto-blocking on the classifier's default 0.5 threshold would wrongly block
 roughly one clean comment in five. So the gate emits three outcomes, not two,
 and only the high-precision signals are allowed to block outright.
 
-Thresholds are measured on the held-out test split, not guessed:
+Two different threshold sets, for two different jobs. The block/review routing
+below optimizes precision; the per-category thresholds in thresholds.json
+optimize F1, because naming a category on a record is a different decision from
+refusing to publish something.
+
+Routing thresholds, measured on the held-out test split, not guessed:
 
     threshold   precision   recall
       0.50        0.796      0.781   <- too imprecise to block on
@@ -30,6 +35,7 @@ Usage:
         ...
 """
 
+import json
 import os
 import sys
 
@@ -44,10 +50,34 @@ LABEL_COLS = [
 ]
 TOXICITY_IDX = LABEL_COLS.index("toxicity")
 
-# Auto-block only where measured precision is ~0.96. See the table above.
+# Routing thresholds for the block/review decision. These are chosen for
+# PRECISION -- only signals measured at ~0.96 may block -- and are deliberately
+# not the F1-optimal values, because the cost of a wrong block is not symmetric
+# with the cost of a miss.
 CLASSIFIER_BLOCK_THRESHOLD = 0.95
 CLASSIFIER_REVIEW_THRESHOLD = 0.50
 LEXICON_BLOCK_SEVERITY = 3
+
+# Per-label thresholds for *reporting* a category on the record, which is a
+# different objective: there F1 is right, and one 0.5 cutoff across seven
+# labels of very different frequency is not. Fitted by tune_thresholds.py on
+# validation only; labels with too few examples keep 0.5 on purpose.
+CATEGORY_THRESHOLDS_FILE = os.path.join(HERE, "thresholds.json")
+
+
+def _load_category_thresholds():
+    try:
+        with open(CATEGORY_THRESHOLDS_FILE, encoding="utf-8") as f:
+            payload = json.load(f)
+    except (OSError, ValueError):
+        # Missing or unreadable: fall back to one cutoff for every label.
+        return {label: CLASSIFIER_REVIEW_THRESHOLD for label in LABEL_COLS}
+    default = payload.get("default", CLASSIFIER_REVIEW_THRESHOLD)
+    fitted = payload.get("thresholds", {})
+    return {label: float(fitted.get(label, default)) for label in LABEL_COLS}
+
+
+CATEGORY_THRESHOLDS = _load_category_thresholds()
 
 # Categories the roadmap flags as too sparse to act on alone (537 threat and
 # 1,168 severe_toxicity positives in training). They annotate a decision; they
@@ -139,7 +169,7 @@ class ModerationGate:
             flagged_categories = {
                 label: round(score, 3)
                 for label, score in scores.items()
-                if label != "toxicity" and score >= CLASSIFIER_REVIEW_THRESHOLD
+                if label != "toxicity" and score >= CATEGORY_THRESHOLDS[label]
             }
 
         # Highest-precision signals first; the first match wins.

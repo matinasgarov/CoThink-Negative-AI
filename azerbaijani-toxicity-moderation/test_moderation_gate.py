@@ -6,19 +6,22 @@ Run: python -m unittest test_moderation_gate -v
 import unittest
 
 from moderation_gate import (
-    ALLOW, BLOCK, PRIVATE, PUBLIC, REVIEW, ModerationGate, apply_policy,
+    ALLOW, BLOCK, CATEGORY_THRESHOLDS, LABEL_COLS, PRIVATE, PUBLIC, REVIEW,
+    ModerationGate, apply_policy,
 )
 
 
 class FakeClassifier:
     """Stands in for the trained model so policy is tested without artifacts."""
 
-    def __init__(self, toxicity):
-        self.toxicity = toxicity
+    def __init__(self, toxicity, **per_label):
+        self.scores = {label: 0.0 for label in LABEL_COLS}
+        self.scores["toxicity"] = toxicity
+        self.scores.update(per_label)
 
     def predict_proba(self, _x):
         # Column order must match LABEL_COLS; toxicity is last.
-        return [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, self.toxicity]]
+        return [[self.scores[label] for label in LABEL_COLS]]
 
 
 class FakeVectorizer:
@@ -26,9 +29,10 @@ class FakeVectorizer:
         return texts
 
 
-def gate_with(toxicity):
+def gate_with(toxicity, **per_label):
     real = ModerationGate.load()
-    return ModerationGate(real.lexicon, FakeVectorizer(), FakeClassifier(toxicity))
+    return ModerationGate(real.lexicon, FakeVectorizer(),
+                          FakeClassifier(toxicity, **per_label))
 
 
 class TestGateDecisions(unittest.TestCase):
@@ -76,6 +80,44 @@ class TestGateDecisions(unittest.TestCase):
         decision = gate_with(0.01).moderate("sen serefsiz")
         words = [m["word"] for m in decision["lexicon_matches"]]
         self.assertIn("şərəfsiz", words)
+
+
+class TestCategoryThresholds(unittest.TestCase):
+    """Categories are reported at their own fitted threshold, not a flat 0.5."""
+
+    def test_every_label_has_a_threshold(self):
+        for label in LABEL_COLS:
+            self.assertIn(label, CATEGORY_THRESHOLDS)
+            self.assertGreater(CATEGORY_THRESHOLDS[label], 0.0)
+            self.assertLessEqual(CATEGORY_THRESHOLDS[label], 1.0)
+
+    def test_rare_labels_kept_the_default(self):
+        # threat had 61 validation positives and severe_toxicity failed the
+        # generalization check, so both must stay at 0.5 rather than be fitted.
+        self.assertEqual(CATEGORY_THRESHOLDS["threat"], 0.5)
+        self.assertEqual(CATEGORY_THRESHOLDS["severe_toxicity"], 0.5)
+
+    def test_score_below_a_raised_threshold_is_not_reported(self):
+        # sexual_explicit sits at 0.71, so 0.60 must no longer flag it -- this
+        # is the over-reporting the retune exists to fix.
+        self.assertGreater(CATEGORY_THRESHOLDS["sexual_explicit"], 0.60)
+        decision = gate_with(0.10, sexual_explicit=0.60).moderate("neytral mətn")
+        self.assertNotIn("sexual_explicit", decision["flagged_categories"])
+
+    def test_score_above_a_raised_threshold_is_reported(self):
+        decision = gate_with(0.10, sexual_explicit=0.90).moderate("neytral mətn")
+        self.assertIn("sexual_explicit", decision["flagged_categories"])
+
+    def test_score_above_a_lowered_threshold_is_reported(self):
+        # insult was fitted down to 0.44, so 0.46 should now flag.
+        self.assertLess(CATEGORY_THRESHOLDS["insult"], 0.5)
+        decision = gate_with(0.10, insult=0.46).moderate("neytral mətn")
+        self.assertIn("insult", decision["flagged_categories"])
+
+    def test_thresholds_do_not_change_the_block_decision(self):
+        # Routing is precision-driven and must be unaffected by F1 tuning.
+        self.assertEqual(gate_with(0.99).moderate("neytral mətn")["action"], BLOCK)
+        self.assertEqual(gate_with(0.80).moderate("neytral mətn")["action"], REVIEW)
 
 
 class TestLexiconOnlyFallback(unittest.TestCase):
