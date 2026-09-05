@@ -1,0 +1,35 @@
+Phrase,Scope,Reason
+erməni,exact,Demonym (Armenian) - neutral; identity_attack is phrase-level not word-level
+türk,exact,Demonym (Turk) - neutral
+rus,exact,Demonym (Russian) - neutral
+ərəb,exact,Demonym (Arab) - neutral
+fars,exact,Demonym (Persian) - neutral
+yəhudi,exact,Demonym (Jewish) - neutral
+müsəlman,exact,Religious identity - neutral
+xristian,exact,Religious identity - neutral
+iranlı,exact,Demonym (Iranian) - neutral
+kürd,exact,Demonym (Kurdish) - neutral
+ləzgi,exact,Demonym (Lezgin) - neutral
+talış,exact,Demonym (Talysh) - neutral
+gey,exact,Sexual orientation - neutral term; slur use is phrase-level
+lgbt,exact,Identity term - neutral
+siyonist,exact,Political term - legitimate political speech
+götür,prefix,To take - shares a prefix with göt; blocks the whole inflection family
+götürmək,prefix,To take (infinitive) - same family
+şikayət,prefix,Complaint - shares a prefix with the sik family; 12 clean occurrences
+tullamaq,prefix,To throw - shares a prefix with tula after folding
+tullanmaq,prefix,To jump - same family
+seksiya,prefix,Section - shares a prefix with seks
+seksual,prefix,Clinical or descriptive use - not explicit on its own
+kütlə,prefix,Mass or crowd - shares a prefix with küt
+saxla,exact,To keep - shares a prefix with the sox family after folding
+sikkə,exact,Coin - collapses to the same key as one sik form; exact only so the sikərəm family stays reachable
+pessimist,exact,Pessimist - collides with the peşi family
+ana,exact,Mother - neutral; appears in insult phrases but the word is innocent
+bacı,exact,Sister - neutral; same reason as ana
+arvad,exact,Wife - neutral
+ata,exact,Father - neutral
+it,exact,Dog - neutral and extremely common; too short to filter safely
+off,exact,Interjection (ugh) - scored high by correlation but is not profane
+sus,exact,Be quiet - blunt but not profane on its own
+kül,exact,Ash - only insulting inside a fixed phrase

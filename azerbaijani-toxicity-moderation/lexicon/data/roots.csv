@@ -1,0 +1,150 @@
+Word,Category,Severity,Note
+sik,obscene,3,core vulgar root; large inflection family in corpus
+sox,obscene,3,vulgar use of soxmaq; literal sense exists so review flags
+göt,obscene,3,vulgar; distinct from götür which is whitelisted
+oğraş,obscene,3,
+qəhbə,obscene,3,manual addition; below mining threshold
+yavşaq,obscene,3,manual addition
+dəyyus,obscene,3,manual addition
+orospu,obscene,3,Turkish-origin but in common local use
+pezevəng,obscene,3,manual addition
+peşi,obscene,3,highest-evidence term in corpus (257 toxic / 2 clean)
+blet,obscene,2,Russian блять in Latin transliteration
+blin,obscene,1,Russian блин; mild
+tfu,obscene,1,expression of disgust; mild
+boşal,sexual_explicit,2,
+porno,sexual_explicit,2,
+seks,sexual_explicit,1,clinical use exists; low severity
+şərəfsiz,insult,3,most frequent insult in corpus (357 toxic / 13 clean)
+əclaf,insult,3,
+bicbala,insult,3,
+pedofil,insult,3,
+alçaq,insult,2,
+eşşək,insult,2,
+köpək,insult,2,
+tula,insult,2,
+çaqqal,insult,2,
+zibil,insult,2,literal sense (rubbish) is common; severity kept low
+gic,insult,2,
+axmaq,insult,2,manual addition
+mundar,insult,2,
+murdar,insult,2,
+cındır,insult,2,
+vicdansız,insult,2,
+qeyrətsiz,insult,2,
+qansız,insult,2,
+səviyyəsiz,insult,2,
+beyinsiz,insult,2,
+zəlil,insult,2,
+iyrənc,insult,2,
+utanmaz,insult,2,
+sırtıq,insult,2,
+kaftar,insult,2,
+avam,insult,2,
+narkoman,insult,2,
+manyak,insult,2,
+şizofren,insult,2,used as an ableist slur in corpus
+bədbəxt,insult,2,
+tüpürüm,insult,2,
+əxlaqsız,insult,2,
+pozğun,insult,2,
+rəzil,insult,2,manual addition
+kütbeyin,insult,2,manual addition
+nadan,insult,1,
+məxluq,insult,1,
+yaltaq,insult,1,
+lənət,insult,1,
+qaraçı,identity_attack,3,ethnic slur for Roma; distinct from whitelisted demonyms
+dığa,identity_attack,3,ethnic slur for Armenians
+gəbər,threat,2,imperative drop dead
+lox,insult,2,Russian лох in Latin transliteration
+psix,insult,2,shortened psycho - used as an ableist slur
+amcıq,obscene,3,
+qancıq,obscene,3,manual addition
+fahişə,obscene,3,manual addition
+sürtük,insult,2,manual addition
+yalançı,insult,1,liar - mild but consistently hostile in corpus
+çirkin,insult,1,
+biabır,insult,2,
+düşüncəsiz,insult,1,
+rəddol,insult,1,dismissive - get lost
+peysər,obscene,3,attested in corpus below the old mining threshold
+pox,obscene,2,literal sense exists; kept at moderate
+piç,obscene,3,
+puşt,obscene,3,
+ibnə,obscene,3,slur
+gavat,obscene,3,
+kaltaq,obscene,3,
+dalyaraq,obscene,3,
+sikiş,obscene,3,
+götverən,obscene,3,slur
+yarraq,obscene,3,collapses to yaraq after repeat folding
+sikdir,obscene,3,
+suka,obscene,3,Russian сука - common in Azerbaijani chat
+blyad,obscene,3,Russian блядь - fuller spelling than the existing blet
+pidor,obscene,3,Russian slur
+mudak,obscene,3,Russian
+xuy,obscene,3,Russian хуй
+nahuy,obscene,3,Russian
+pizda,obscene,3,Russian
+dolbayob,obscene,3,Russian
+təcavüz,sexual_explicit,2,also used in legitimate news reporting; review rather than auto-block
+zorlama,sexual_explicit,2,also means to force; review rather than auto-block
+əmcək,sexual_explicit,2,
+eşşoğlu,insult,3,
+itoğlu,insult,3,
+haramzadə,insult,3,
+namussuz,insult,3,
+ləyaqətsiz,insult,3,
+biqeyrət,insult,3,
+namərd,insult,2,
+mərdimazar,insult,2,
+nadürüst,insult,2,
+səfeh,insult,2,
+sarsaq,insult,2,
+gicbəsər,insult,2,
+debil,insult,2,ableist slur
+kretin,insult,2,ableist slur
+idiot,insult,2,
+küt,insult,2,kütlə is whitelisted to protect the common word
+abırsız,insult,2,
+həyasız,insult,2,
+arsız,insult,2,
+tərbiyəsiz,insult,2,
+xain,insult,2,
+satqın,insult,2,
+yalaq,insult,2,
+çuğul,insult,2,
+düşük,insult,2,
+qanmaz,insult,2,
+ağılsız,insult,2,
+psixopat,insult,2,
+sadist,insult,2,
+fırıldaqçı,insult,2,
+dələduz,insult,2,
+qudurmuş,insult,2,
+qudurğan,insult,2,
+riyakar,insult,2,
+ikiüzlü,insult,2,
+xəbis,insult,2,
+bədniyyət,insult,2,
+şarlatan,insult,2,
+rüsvay,insult,2,
+rəzalət,insult,2,
+məkrli,insult,2,
+cahil,insult,2,
+hiyləgər,insult,1,
+miskin,insult,1,
+pinti,insult,1,
+natəmiz,insult,1,
+avara,insult,1,
+tənbəl,insult,1,
+lotu,insult,1,
+qorxaq,insult,1,
+başıboş,insult,1,
+məsxərə,insult,1,
+kobud,insult,1,
+öküz,insult,1,literal animal sense exists; kept mild
+zırrama,insult,2,
+cuhud,identity_attack,3,ethnic slur for Jews
+ermənipərəst,identity_attack,2,political pejorative; review rather than auto-block

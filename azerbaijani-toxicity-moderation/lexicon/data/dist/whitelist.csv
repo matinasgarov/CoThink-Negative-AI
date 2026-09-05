@@ -1,0 +1,35 @@
+Phrase,NormalizedPhrase,Scope,Reason
+erməni,ermeni,exact,Demonym (Armenian) - neutral; identity_attack is phrase-level not word-level
+türk,turk,exact,Demonym (Turk) - neutral
+rus,rus,exact,Demonym (Russian) - neutral
+ərəb,ereb,exact,Demonym (Arab) - neutral
+fars,fars,exact,Demonym (Persian) - neutral
+yəhudi,yehudi,exact,Demonym (Jewish) - neutral
+müsəlman,muselman,exact,Religious identity - neutral
+xristian,xristian,exact,Religious identity - neutral
+iranlı,iranli,exact,Demonym (Iranian) - neutral
+kürd,kurd,exact,Demonym (Kurdish) - neutral
+ləzgi,lezgi,exact,Demonym (Lezgin) - neutral
+talış,talis,exact,Demonym (Talysh) - neutral
+gey,gey,exact,Sexual orientation - neutral term; slur use is phrase-level
+lgbt,lgbt,exact,Identity term - neutral
+siyonist,siyonist,exact,Political term - legitimate political speech
+götür,gotur,prefix,To take - shares a prefix with göt; blocks the whole inflection family
+götürmək,goturmek,prefix,To take (infinitive) - same family
+şikayət,sikayet,prefix,Complaint - shares a prefix with the sik family; 12 clean occurrences
+tullamaq,tulamaq,prefix,To throw - shares a prefix with tula after folding
+tullanmaq,tulanmaq,prefix,To jump - same family
+seksiya,seksiya,prefix,Section - shares a prefix with seks
+seksual,seksual,prefix,Clinical or descriptive use - not explicit on its own
+kütlə,kutle,prefix,Mass or crowd - shares a prefix with küt
+saxla,saxla,exact,To keep - shares a prefix with the sox family after folding
+sikkə,sike,exact,Coin - collapses to the same key as one sik form; exact only so the sikərəm family stays reachable
+pessimist,pesimist,exact,Pessimist - collides with the peşi family
+ana,ana,exact,Mother - neutral; appears in insult phrases but the word is innocent
+bacı,baci,exact,Sister - neutral; same reason as ana
+arvad,arvad,exact,Wife - neutral
+ata,ata,exact,Father - neutral
+it,it,exact,Dog - neutral and extremely common; too short to filter safely
+off,of,exact,Interjection (ugh) - scored high by correlation but is not profane
+sus,sus,exact,Be quiet - blunt but not profane on its own
+kül,kul,exact,Ash - only insulting inside a fixed phrase
