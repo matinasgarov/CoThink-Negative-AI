@@ -138,10 +138,86 @@ Against the roadmap in `Product_Build_Roadmap_Overview.pdf`:
   platform with no video pipeline behind it.
 - **The MySQL and Postgres schemas have never been run on a server.** The
   SQLite build is created and verified; the other two are untested DDL.
-- **Rare categories are weak** — `threat` F1 0.218, `severe_toxicity` F1 0.362,
-  on 537 and 1,168 training positives. This is data scarcity, not a fixable
-  modeling detail. Label repair was tried and measured at +0.0002 macro F1.
+- **Rare categories are weak** — `threat` F1 0.218, `severe_toxicity` F1 0.362.
+  Analysed in detail below (in Azerbaijani): it is partly a modeling choice and
+  partly a limit of the model class, not only data scarcity.
 - **The classifier over-flags neutral demonyms.** "Mən erməni dilini öyrənirəm"
   (*I am learning Armenian*) scores 0.88 toxic. The lexicon whitelist keeps such
   text out of the block band, but it lands in review — which is the argument for
   keeping review a human step rather than tightening it into an auto-block.
+
+
+---
+
+# Nadir kateqoriyalar niyə zəifdir?
+
+`threat` (F1 0.218) və `severe_toxicity` (F1 0.362) modelin ən zəif
+nöqtələridir. Səbəb yalnız "data azdır" deyil — üç ayrı problem üst-üstə düşür.
+
+## 1. Problem dəqiqlikdədir, əhatəlilikdə deyil
+
+Model təhdidlərin təxminən yarısını tapır, lakin siqnal verdiyi hallarda
+demək olar ki, həmişə yanılır:
+
+| Etiket | Dəqiqlik (precision) | Əhatəlilik (recall) |
+|---|---|---|
+| `threat` | **0.141** | 0.475 |
+| `severe_toxicity` | **0.243** | 0.710 |
+| `insult` | 0.679 | 0.743 |
+
+Bu mənzərə — yüksək əhatəlilik, çökmüş dəqiqlik — təsnifatçıdakı
+`class_weight="balanced"` parametrinə işarə edir. Həmin parametr nadir
+sinifləri süni şəkildə gücləndirir və qərar sərhədini "müsbət" tərəfə çəkir.
+Müsbət nümunələrin cəmi 0.9% olduğu datasetdə bu, həddən artıq aqressivdir.
+
+## 2. Hədd tənzimləməsi problemin bir hissəsini həll edir
+
+Hər etiket üçün ayrıca hədd seçmək real fayda verir — toxunulmamış test
+bölməsində yoxlanılıb:
+
+| Etiket | F1 (hədd 0.5) | Ən yaxşı hədd | F1 (test) |
+|---|---|---|---|
+| `sexual_explicit` | 0.561 | 0.71 | **0.624** |
+| `obscene` | 0.562 | 0.65 | **0.593** |
+
+Deməli, zəifliyin bir hissəsi **model qərarıdır, data məhdudiyyəti deyil**.
+
+Lakin `threat` üçün bu üsul işləmir: validasiya üzərində seçilmiş hədd test
+bölməsində nəticəni **pisləşdirir** (0.218 → 0.198). Validasiyada cəmi 61
+müsbət nümunə var — bu, öyrənmək bir yana, hətta kalibrləmək üçün də azdır.
+
+## 3. Əsas səbəb: təhdid leksik deyil, qrammatik hadisədir
+
+Datasetdə `threat` kimi etiketlənən cümlələrə baxaq:
+
+> *"Vuran əllərin qurusun inşəallah"*
+> *"Mən olsam sənə kicik gizir verərəm"*
+> *"Qaçırdacam mən."*
+
+Burada "təhdid lüğəti" yoxdur. Bütün korpusda təhdidə ən xas söz olan
+`öldürərəm` cəmi **537 təhdiddən 8-ində** rast gəlinir. Ən güclü 12 marker
+birlikdə yalnız **158/537** cümləni əhatə edir və onların çoxu tamamilə adi
+sözlərdir: `səni`, `lazımdı`, `tutub`.
+
+Təhdid bir **nitq aktıdır**: şərti quruluş, gələcək zaman və nəzərdə tutulan
+hədəf. Model isə simvol n-qramları üzərində qurulmuş loqistik reqressiyadır.
+O, *"əgər X, onda sənə Y edəcəyəm"* strukturunu təmsil edə bilmir — sadəcə
+səthi fraqmentləri uyğunlaşdırır.
+
+Bu, leksikonun əhatəlilik tavanı ilə eyni tapıntıdır, sadəcə bir səviyyə
+yuxarıda: **çətin kateqoriyalar lüğətə deyil, kompozisiyaya əsaslanır.**
+
+## Nəticələr
+
+- **Hədləri yenidən tənzimləmək** — əlavə xərc tələb etmir, bu gün işləyir və
+  `obscene` ilə `sexual_explicit` üzərində ölçülə bilən qazanc verir.
+- **Nadir etiketlər üçün `class_weight="balanced"`-dan imtina etmək** və bunun
+  əvəzinə həddi açıq şəkildə təyin etmək.
+- **`threat` və `severe_toxicity` üzrə avtomatik bloklamamaq.** 0.141
+  dəqiqliklə hər 7 avtomatik blokdan 6-sı səhv olardı. Gate onsuz da bu
+  kateqoriyaları yalnız məlumat xarakterli (`advisory`) sayır.
+- **Transformer modeli burada həqiqətən kömək edərdi.** Etiket təmizləməsi
+  (+0.0002 macro F1) və leksikonun genişləndirilməsi (hər kök üçün ~0.0005
+  recall) ölçülüb — təsirləri cüzidir. XLM-R isə söz sırasını modelləşdirir və
+  şərti strukturu təmsil edə bilir. GPU ilə fine-tune məhz burada özünü
+  doğruldur.
